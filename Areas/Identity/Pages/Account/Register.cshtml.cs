@@ -176,7 +176,24 @@ namespace BulkyBook.Areas.Identity.Pages.Account
 
                     //Add role cho user
                     //mặc định đang để là admin
-                    await _userManager.AddToRoleAsync(user, SD.Role_Admin);
+                    //await _userManager.AddToRoleAsync(user, SD.Role_Admin);
+
+                    if (user.Role == null)
+                    {
+                        //trường hợp đăng ký nhưng không chọn role => tạo role mặc định là Individual Customer
+                        await _userManager.AddToRoleAsync(user, SD.Role_User_Individual);
+                    }
+                    else
+                    {
+                        //trường hợp đăng ký và chọn role
+                        //sẽ check thêm là user có company hay không
+                        if (user.CompanyId > 0)
+                        {
+                            //trường hợp có company
+                            await _userManager.AddToRoleAsync(user, SD.Role_User_Company);
+                        }
+                        await _userManager.AddToRoleAsync(user, user.Role);
+                    }
 
                     //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     //code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
@@ -195,8 +212,18 @@ namespace BulkyBook.Areas.Identity.Pages.Account
                     }
                     else
                     {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
+                        if (user.Role == null)
+                        {
+                            await _signInManager.SignInAsync(user, isPersistent: false);
+                            return LocalRedirect(returnUrl);
+                        }
+                        else
+                        {
+                            //trường hợp admin đăng ký 1 user mới
+                            //vẫn giữ đăng nhập của admin và trả về list users
+                            //có link như sau /Admin/Users/Index
+                            return RedirectToAction("Index", "User", new { Area = "Admin" });
+                        }
                     }
                 }
                 foreach (var error in result.Errors)
