@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 
@@ -93,11 +94,32 @@ namespace BulkyBook.Areas.Identity.Pages.Account
             public int? CompanyId { get; set; }
 
             public string Role { get; set; }
+
+            public IEnumerable<SelectListItem> CompanyList { get; set; }
+            public IEnumerable<SelectListItem> RoleList { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
         {
             ReturnUrl = returnUrl;
+
+            Input = new InputModel()
+            {
+                CompanyList = _unit.Company.GetAll().Select(i => new SelectListItem
+                {
+                    Text = i.Name,
+                    Value = i.Id.ToString()
+                }),
+                //yêu cầu là người dùng admin không thể tạo account có role là Individual Customer
+                // nên sẽ lựa toàn bộ role trừ SD.Role_User_Individual
+                //Và mình lấy về cái list tên nên Text = i luôn
+                RoleList = _roleManager.Roles.Where(i => i.Name != SD.Role_User_Individual).Select(r => r.Name).Select(i => new SelectListItem
+                {
+                    Text = i,
+                    Value = i
+                })
+            };
+
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
 
