@@ -39,10 +39,40 @@ namespace BulkyBook
             //options => options.SignIn.RequireConfirmedAccount = true //đăng nhập và dùng email xác thực
             services.AddIdentity<IdentityUser, IdentityRole>().AddDefaultTokenProviders()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+            //------------------------Email-----------------
             services.AddSingleton<IEmailSender, EmailSender>();
+            services.Configure<EmailOptions>(Configuration);
+            // Sau khi thêm dòng Configure, hệ thống sẽ mapping 2 thuộc tính trong file appsettings.json vào class EmailOptions
+            // theo kiểu Dependencies Injection (DI)
+            //-----------------------------------------------
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddRazorPages();
+            //thêm dòng này vào để khi phân quyền bên controller
+            //hệ thống asp.net sẽ tự động xét role của cái cookie đấy rồi điều về trang thích hợp
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = $"/Identity/Account/Login";
+                options.LogoutPath = $"/Identity/Account/Logout";
+                options.AccessDeniedPath = $"/Identity/Account/AccessDenied";
+            });
+
+            //Add facebook login api
+            //gồm có 2 thứ cần chú ý: App Id và ApplSecret trên facebook for dev
+            //2 mã này copy trên facebook
+            services.AddAuthentication().AddFacebook(options =>
+            {
+                options.AppId = "423674195529328";
+                options.AppSecret = "c76553e3c03f64aa1ccc6eaa65a297c0";
+            });
+
+            //add google+ api
+            //giống y chang facebook
+            services.AddAuthentication().AddGoogle(options =>
+            {
+                options.ClientId = "364228755076-nqfft0evjngqbig8elgt33tu1f6j68g3.apps.googleusercontent.com";
+                options.ClientSecret = "mwdpPkp6J3eIF1XpqjW5e06P";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

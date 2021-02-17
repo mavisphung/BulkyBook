@@ -1,0 +1,42 @@
+﻿# Emails section
+	Kéo api của SendGrid về
+	Do thằng SendGrid có cập nhật một số policy mới nên phải fix lại 1 xíu
+	Tức là dùng 2 email: 1 email để lấy về, 1 email để verify email lấy về
+	Copy thêm hàm Execute mà bên SendGrid tạo sẵn vào class dùng để gửi email (Điển hình ở đây là EmailSender)
+	Cách tích hợp api này vào project thông qua dependency injection
+		1. Tạo 1 class riêng chứa thuộc tính key và user của api SendGrid
+			Cụ thể như sau:
+				- Tạo class EmailOptions gồm 2 thuộc tính SendGridKey, SendGridUser giống trong file appsettings.json
+				- Startup.cs => dưới dòng services.AddSingleton<IEmailSender, EmailSender>();
+				  => Thêm dòng services.Configure<EmailOptions>(Configuration);
+		2. Configure 1 xíu bên EmailSender.cs
+			Làm theo kiểu DI => Đã DI thì không thể thiếu contructor và private readonly
+				1 thuộc tính private readonly EmailOptions _emailOptions
+				1 contructor với tham số là IOptions<EmailOptions> options
+					Nên thông qua thằng IOptions của thằng 
+
+# Shopping cart section
+	Cơ chế cơ bản nhất của giỏ hàng: lưu lại những sản phẩm mà user đã thêm vào giỏ trong vòng 1 tháng
+	Qua thời hạn 1 tháng thì tự động làm trống giỏ hàng của user
+	Các models cần để lưu trữ data như sau: ShoppingCart, OrderHeader, OrderDetails
+		ShoppingCart:
+			Gồm có các thuộc tính cơ bản như sau:
+				Khóa chính: Id
+				Khóa phụ: ApplicationUserId, ProductId
+				Số lượng: Count
+				Tổng giá: Price
+				=> Dựa vào số lượng mà user đặt thì sẽ có tổng giá khác nhau => thuộc tính Price sẽ NotMapped trong database
+		OrderHeader:
+			Dùng để lưu lại tổng quan (overview) giỏ hàng của user
+			tương tư giỏ hàng
+			Bao gồm các thuộc tính sau:
+				int Id (K)
+				string AppUserId (PK)
+				datetime OrderDate
+				datetime ShippingDate
+				Double OrderTotal
+				một vài thuộc tính hỗ trợ khác như TrackingNumber, Carrier, OrderStatus, PaymentStatus, PaymentDate, PaymentDueDate
+		OrderDetails:
+			Dùng để lưu lại từng sản phẩm đã add vào giỏ hàng
+			tương tự các sản phẩm (ở đây là Book)
+		=> OrderHeader chứa nhiều OrderDetails

@@ -34,6 +34,12 @@ namespace BulkyBook.Areas.Customer.Controllers
             return View();
         }
 
+        public IActionResult Details(int? id)
+        {
+            
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

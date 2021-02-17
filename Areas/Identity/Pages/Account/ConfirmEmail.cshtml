@@ -5,3 +5,20 @@
 }
 
 <h1>@ViewData["Title"]</h1>
+
+@if (Model.User != null)
+{
+    <div class="container-fluid">
+        <div class="alert-success">
+            <p>You has been confirmed successfully</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <div class="alert-danger">
+            <p>You has been confirmed failed</p>
+        </div>
+    </div>
+}
