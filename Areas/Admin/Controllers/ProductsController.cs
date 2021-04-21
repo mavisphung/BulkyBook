@@ -29,12 +29,13 @@ namespace BulkyBook.Areas.Admin.Controllers
             return View();
         }
 
-        public IActionResult Upsert(int? id) //upsert method = get
+        public async Task<IActionResult> Upsert(int? id) //upsert method = get
         {
+            IEnumerable<Category> cateList = await _unit.Category.GetAllAsync();
             ProductVM productVM = new ProductVM()
             {
                 Product = new Product(),
-                CategoryList = _unit.Category.GetAll().Select(i => new SelectListItem
+                CategoryList = cateList.Select(i => new SelectListItem
                 {
                     Text = i.Name,
                     Value = i.Id.ToString()
@@ -67,7 +68,7 @@ namespace BulkyBook.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken] //chặn request giả mạo (forgery) từ form submit lên server từ những trang khác
-        public IActionResult Upsert(ProductVM productVM)
+        public async Task<IActionResult> Upsert(ProductVM productVM)
         {
             if (ModelState.IsValid)
             {
@@ -115,7 +116,6 @@ namespace BulkyBook.Areas.Admin.Controllers
                      *        sẽ cần phải gọi hàm SaveChanges() từ UnitOfWork
                      */
                     _unit.Product.Add(productVM.Product);
-                    
                 }
                 else
                 {
@@ -137,7 +137,8 @@ namespace BulkyBook.Areas.Admin.Controllers
                 //gán vào productVM.CategoryList và productVM.CoverTypeList để tránh gây lỗi
                 //Phần code đấy có thể copy từ dòng 37 đến dòng 46 ngay tại controller này
                 //và xử lí ngay tại chỗ else của ModelState.IsValid trước khi return về trang upsert
-                productVM.CategoryList = _unit.Category.GetAll().Select(i => new SelectListItem
+                IEnumerable<Category> categories = await _unit.Category.GetAllAsync();
+                productVM.CategoryList = categories.Select(i => new SelectListItem
                 {
                     Text = i.Name,
                     Value = i.Id.ToString()

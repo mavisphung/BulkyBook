@@ -1,4 +1,5 @@
 ﻿using BulkyBook.DataAccess.Data;
+using BulkyBook.DataAccess.Initializer;
 using BulkyBook.DataAccess.Repository;
 using BulkyBook.DataAccess.Repository.IRepository;
 using BulkyBook.Utility;
@@ -8,10 +9,12 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Stripe;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +48,20 @@ namespace BulkyBook
             // Sau khi thêm dòng Configure, hệ thống sẽ mapping 2 thuộc tính trong file appsettings.json vào class EmailOptions
             // theo kiểu Dependencies Injection (DI)
             //-----------------------------------------------
+            //------------------------Stripe----------------
+            services.Configure<StripeSettings>(Configuration.GetSection("Stripe"));
+            services.Configure<BrainTreeSettings>(Configuration.GetSection("BrainTree"));
+            //------------------Twilio----------------------
+            services.Configure<TwilioSettings>(Configuration.GetSection("Twilio"));
+            //----------------------------------------------
+            //------------Tiêm UnitOfWork vào DI----------------
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddSingleton<IBrainTreeGate, BrainTreeGate>();
+            //---------------Thêm ITempDataProvider với mục đích chứa các dữ liệu tạm thời sau khi delete----------------------
+            services.AddSingleton<ITempDataProvider, CookieTempDataProvider>();
+            //------------Tiêm DbInitializer vào DI----------------
+            services.AddScoped<IDbInitializer, DbInitializer>();
+            //-----------------------------------------------------
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddRazorPages();
             //thêm dòng này vào để khi phân quyền bên controller
@@ -73,10 +89,23 @@ namespace BulkyBook
                 options.ClientId = "364228755076-nqfft0evjngqbig8elgt33tu1f6j68g3.apps.googleusercontent.com";
                 options.ClientSecret = "mwdpPkp6J3eIF1XpqjW5e06P";
             });
+
+            //Thêm session và chỉnh 3 thứ
+            //  1. Thời gian timeout
+            //  2. Cookie.HttpOnly = true
+            //  3. Cookie.IsEssential = true
+            //Chức năng của session trong này là gì?
+            //  => Có thể giúp lưu 1 List hay object dưới dạng json để và truy xuất ở bất kỳ controller nào mà mình muốn
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30); //30p
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IDbInitializer dbInitializer)
         {
             if (env.IsDevelopment())
             {
@@ -93,14 +122,18 @@ namespace BulkyBook
             app.UseStaticFiles();
 
             app.UseRouting();
-
+            //Stripe
+            StripeConfiguration.ApiKey = Configuration.GetSection("Stripe")["SecretKey"];
+            //session
+            app.UseSession();
             app.UseAuthentication();
             app.UseAuthorization();
+            dbInitializer.Initialize();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
-                    name: "default",
+                    name: "areas",
                     pattern: "{area=Customer}/{controller=Home}/{action=Index}/{id?}");
                 endpoints.MapRazorPages();
             });

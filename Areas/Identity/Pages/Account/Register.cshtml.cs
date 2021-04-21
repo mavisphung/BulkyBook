@@ -151,28 +151,8 @@ namespace BulkyBook.Areas.Identity.Pages.Account
                     //trường hợp tạo tài khoản thành công
                     _logger.LogInformation("User created a new account with password.");
 
-                    //kiểm tra xem role này đã có trong RoleManager chưa, nếu chưa có thì thêm role mới vào
-                    if (!await _roleManager.RoleExistsAsync(SD.Role_Admin))
-                    {
-                        //trường hợp chưa tồn tại thì tạo mới
-                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
-                    }
-
-                    if (!await _roleManager.RoleExistsAsync(SD.Role_Employee))
-                    {
-                        //trường hợp chưa tồn tại thì tạo mới
-                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
-                    }
-                    if (!await _roleManager.RoleExistsAsync(SD.Role_User_Company))
-                    {
-                        //trường hợp chưa tồn tại thì tạo mới
-                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_User_Company));
-                    }
-                    if (!await _roleManager.RoleExistsAsync(SD.Role_User_Individual))
-                    {
-                        //trường hợp chưa tồn tại thì tạo mới
-                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_User_Individual));
-                    }
+                    //Vì đã tạo role bằng phương thức DbInitializer.Initialize()
+                    //Nên không cần phải check role rồi add role ở đây nữa
 
                     //Add role cho user
                     //mặc định đang để là admin
@@ -231,7 +211,23 @@ namespace BulkyBook.Areas.Identity.Pages.Account
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
-
+            //khi đăng nhập bằng tài khoản admin và tạo 1 tài koan3 khác
+            //Nều tài khoản mới hoàn toàn thì không sao
+            //Ngược lại nếu email đã nằm trong database thì chắc chắn sẽ bị lỗi vì InputModel không có data để trả về
+            //để khắc phục tình trạng này thì mình chỉ new lại 1 InputModel mới kèm theo 2 cái list là được
+            Input = new InputModel()
+            {
+                CompanyList = _unit.Company.GetAll().Select(i => new SelectListItem
+                {
+                    Text = i.Name,
+                    Value = i.Id.ToString()
+                }),
+                RoleList = _roleManager.Roles.Where(i => i.Name != SD.Role_User_Individual).Select(r => r.Name).Select(i => new SelectListItem
+                {
+                    Text = i,
+                    Value = i
+                })
+            };
             // If we got this far, something failed, redisplay form
             return Page();
         }

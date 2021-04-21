@@ -1,5 +1,6 @@
 ﻿using BulkyBook.DataAccess.Repository.IRepository;
 using BulkyBook.Models;
+using BulkyBook.Models.ViewModels;
 using BulkyBook.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,27 @@ namespace BulkyBook.Areas.Admin.Controllers
             _unit = unit;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int catePage = 1)
         {
-            return View();
+            CategoriesVM cateVM = new CategoriesVM
+            {
+                Categories = await _unit.Category.GetAllAsync(),
+            };
+            var count = cateVM.Categories.Count();
+            cateVM.Categories = cateVM.Categories.OrderBy(p => p.Name)
+                                                 .Skip((catePage - 1) * 2)
+                                                 .Take(2).ToList();
+            cateVM.PagingInfo = new PagingInfo
+            {
+                CurrentPage = catePage,
+                ItemsPerPage = 2,
+                TotalItems = count,
+                UrlParam = "/Admin/Categories/Index?catePage=:"
+            };
+            return View(cateVM);
         }
 
-        public IActionResult Upsert(int? id) //upsert method = get
+        public async Task<IActionResult> Upsert(int? id) //upsert method = get
         {
             Category cate = new Category();
             if (id == null)
@@ -36,7 +52,7 @@ namespace BulkyBook.Areas.Admin.Controllers
                 return View(cate); //trả về cate để insert
             }
 
-            cate = _unit.Category.Get(id.GetValueOrDefault()); //phải dùng hàm GetValueOrDefault vì id có thể null
+            cate = await _unit.Category.GetAsync(id.GetValueOrDefault()); //phải dùng hàm GetValueOrDefault vì id có thể null
             if (cate == null)
             {
                 //tìm không thấy cate trong db thì trả về notfound, khác với thêm mới
@@ -52,7 +68,7 @@ namespace BulkyBook.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken] //chặn request giả mảo (forgery) từ form submit lên server từ những trang khác
-        public IActionResult Upsert(Category category)
+        public async Task<IActionResult> Upsert(Category category)
         {
             if (ModelState.IsValid)
             {
@@ -62,12 +78,13 @@ namespace BulkyBook.Areas.Admin.Controllers
                      *      - SaveChanges() chỉ được chạy trong hàm update, những hàm liên quan đến Add, Remove
                      *        sẽ cần phải gọi hàm SaveChanges() từ UnitOfWork
                      */
-                    _unit.Category.Add(category);
-                    _unit.Save();
+                    await _unit.Category.AddAsync(category);
+                    
                 } else
                 {
                     _unit.Category.Update(category);
                 }
+                _unit.Save();
                 return RedirectToAction(nameof(Index));
             }
             return View(category);
@@ -81,22 +98,24 @@ namespace BulkyBook.Areas.Admin.Controllers
 
         #region API Calls
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var allObj = _unit.Category.GetAll();
+            var allObj = await _unit.Category.GetAllAsync();
             return Json(new { data = allObj });
         }
 
         [HttpDelete]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var objFromDb = _unit.Category.Get(id);
+            var objFromDb = await _unit.Category.GetAsync(id);
             if (objFromDb == null)
             {
+                TempData["Error"] = "Error deleting category!";
                 return Json(new { success = false, message = "Error while deleting" });
             }
-            _unit.Category.Remove(id);
+            await _unit.Category.RemoveAsync(id);
             _unit.Save();
+            TempData["Success"] = "Successfully deleted category!";
             return Json(new { success = true, message = "Deleted successfully" });
         }
         #endregion

@@ -40,3 +40,25 @@
 			Dùng để lưu lại từng sản phẩm đã add vào giỏ hàng
 			tương tự các sản phẩm (ở đây là Book)
 		=> OrderHeader chứa nhiều OrderDetails
+
+# Session section
+	Trong asp.net mặc định sẽ tắt session đi
+	Vì thế để sử dụng được Session của asp.net, mình phải tạo ra 1 class tượng trưng cho Session
+	Sau khi tạo ra class Session vẫn sẽ không sử dụng được
+	Có 2 lí do
+		1. Chưa vào file startup.cs tiêm nó vào project
+		2. Đã tiêm nhưng chưa đăng ký sử dụng.
+	Hướng giải quyết:
+		Tạo 1 class Session có 2 phương thức cơ bản là SetObject và GetObject
+
+	Cách hiển thị số lượng sản phẩm
+		Lưu số lượng ShoppingCart đã retrieve được ở database
+		login.cshtml.cs
+		logout.cshtml.cs
+		_layout.cshtml => using Microsoft.AspNetCore.Http và inject HttpContextAccessor
+
+# Shopping cart session
+	Có thể thực hiện các chức năng cơ ban CRUD trong cart
+	Ý tưởng thực hiện
+		Mọi thứ đều được giải quyết tại CartController
+		Lưu số lượng sản phẩm ở Session
